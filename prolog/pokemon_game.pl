@@ -7,17 +7,17 @@ player_starts(0,0).
 % TO DO
 
 % percorre a matrix para encontrar o elemento (x,y)
-nth0_element(0, [H|_], H).
-nth0_element(N, [_|T], E) :-
+n_element(0, [H|_], H).
+n_element(N, [_|T], E) :-
     N > 0,
     N1 is N - 1,
-    nth0_element(N1, T, E).
+    n_element(N1, T, E).
 
 % indica qual as coordnada para a função nth0_element
 get_cell(X, Y, Id, Level) :-
     route(M),
-    nth0_element(Y, M, Row),
-    nth0_element(X, Row, (Id, Level)).
+    n_element(Y, M, Row),
+    n_element(X, Row, (Id, Level)).
 
 % verifica se a posição está dentro dos limites
 in_bounds(X, Y) :-
