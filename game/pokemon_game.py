@@ -37,9 +37,9 @@ class PokemonGame:
         for a_type in attacker_types:
             combined_effect = 1
             for d_type in defender_types:
-                result = list(self.prolog.query(f"attack({a_type},{d_type},E)"))
+                result = list(self.prolog.query(f"attack({a_type},{d_type},Effect)"))
                 if result:
-                    combined_effect *= result[0]['E']
+                    combined_effect *= result[0]['Effect']
             if combined_effect > best_effect:
                 best_effect = combined_effect
         return best_effect
@@ -148,8 +148,3 @@ class PokemonGame:
                 return None, None, None, self.game_over
 
         return old_pos, new_pos, prob, self.game_over
-
-    
-    # --------------------------------
-
-   

@@ -4,8 +4,6 @@
 
 player_starts(0,0).
 
-% TO DO
-
 % percorre a matrix para encontrar o elemento (x,y)
 n_element(0, [H|_], H).
 n_element(N, [_|T], E) :-
@@ -13,7 +11,7 @@ n_element(N, [_|T], E) :-
     N1 is N - 1,
     n_element(N1, T, E).
 
-% indica qual as coordnada para a função nth0_element
+% indica qual as coordnada para a função n_lement
 get_cell(X, Y, Id, Level) :-
     route(M),
     n_element(Y, M, Row),
