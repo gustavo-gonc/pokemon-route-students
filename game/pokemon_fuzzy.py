@@ -7,11 +7,34 @@ Cria um sistema Fuzzy que recebe como input a diferença dos niveis
 e o efeito do ataque e devolve como input a probabilidade de ganhar
 '''
 
-level    = ctrl.Antecedent(np.arange(-10, 11, 1), 'level')
-effect    = ctrl.Antecedent(np.array([0.0, 0.25, 0.5, 1.0, 2.0, 4.0]), 'effect')
-probability = ctrl.Consequent(np.arange(0, 1.01, 0.10), 'probability')
+""" level_diff = ctrl.Antecedent(np.arange(-10, 11, 1), 'level_diff')
+effect = ctrl.Antecedent(np.array([0.0, 0.25, 0.5, 1.0, 2.0, 4.0]), 'effect')
+probability = ctrl.Consequent(np.arange(0, 1.01, 0.10), 'probability') """
 
-level['low'] = np.array([
+level_universe = np.arange(-10, 11, 1)
+level_diff = ctrl.Antecedent(level_universe, "level_diff")
+
+# "low" = em desvantagem ou igual; cai a zero perto de +1
+# "high" = vantagem de nível, sobe a partir de 0 e pico ~ +4
+level_diff["low"] = fuzz.trimf(level_universe, [-10, -10, 1])
+level_diff["high"] = fuzz.trimf(level_universe, [0, 4, 10])
+
+effect_universe = np.array([0.0, 0.25, 0.5, 1.0, 2.0, 4.0])
+effect = ctrl.Antecedent(effect_universe, "effect")
+
+# fraco / neutro / forte no produto de efeitos
+effect["weak"] = fuzz.trimf(effect_universe, [0.0, 0.0, 0.75])
+effect["normal"] = fuzz.trimf(effect_universe, [0.25, 1.0, 2.25])
+effect["strong"] = fuzz.trimf(effect_universe, [0.75, 2.5, 4.0])
+
+prob_universe = np.arange(0, 1.01, 0.10)
+probability = ctrl.Consequent(prob_universe, "probability")
+
+probability["low"] = fuzz.trimf(prob_universe, [0.0, 0.0, 0.40])
+probability["medium"] = fuzz.trimf(prob_universe, [0.20, 0.50, 0.80])
+probability["high"] = fuzz.trimf(prob_universe, [0.55, 0.80, 1.00])
+
+""" level_diff['low'] = np.array([
     1.0,  # -10
     1.0,  # -9
     1.0,  # -8
@@ -33,9 +56,9 @@ level['low'] = np.array([
     0.0,  # 8
     0.0,  # 9
     0.0   # 10
-])  
+]) """  
 
-level['high'] = np.array([
+""" level_diff['high'] = np.array([
     0.0,  # -10
     0.0,  # -9
     0.0,  # -8
@@ -60,61 +83,79 @@ level['high'] = np.array([
 ])
 
 effect['weak'] = np.array([
-    1.0,   # 0.0
-    0.7,   # 0.25
-    0.5,   # 0.5
-    0.3,   # 1.0
-    0.1,   # 2.0
+    1.0,   # 0.0 (imune)
+    0.8,   # 0.25 (dupla resistência)
+    0.5,   # 0.5 (resistência)
+    0.0,   # 1.0 (neutro)
+    0.0,   # 2.0
     0.0    # 4.0
+])
+
+effect['normal'] = np.array([
+    0.0,  # 0.00
+    0.0,  # 0.25
+    0.3,  # 0.50
+    1.0,  # 1.00  (neutro)
+    0.3,  # 2.00
+    0.0,  # 4.00
 ])
 
 effect['strong'] = np.array([
     0.0,   # 0.0
-    0.2,   # 0.25
-    0.4,   # 0.5
-    0.7,   # 1.0
-    0.9,   # 2.0
-    1.0    # 4.0
+    0.0,   # 0.25
+    0.0,   # 0.5
+    0.0,   # 1.0
+    0.8,   # 2.0 (super eficaz)
+    1.0    # 4.0 (dupla super eficaz)
 ])
 
 probability['low'] = np.array([1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 probability['medium'] = np.array([0.0, 0.0, 0.2, 0.6, 1.0, 1.0, 1.0, 0.6, 0.2, 0.0, 0.0])
-probability['high'] = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+probability['high'] = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0]) """
 
-# encontra o índice mais próximo de um valor num universo
-def _closest_index(universe, value):
-    value = float(np.clip(value, universe[0], universe[-1]))
-    return int(np.argmin(np.abs(universe - value)))
+rule1 = ctrl.Rule(level_diff['high'] & effect['strong'], probability['high'])   # forte + super eficaz → alto
+rule2 = ctrl.Rule(level_diff['high'] & effect['normal'], probability['high'])   # forte + neutro → alto
+rule3 = ctrl.Rule(level_diff['high'] & effect['weak'],   probability['medium']) # forte + fraco → médio
+rule4 = ctrl.Rule(level_diff['low']  & effect['strong'], probability['medium']) # fraco + super eficaz → médio
+rule5 = ctrl.Rule(level_diff['low']  & effect['normal'], probability['low'])    # fraco + neutro → baixo
+rule6 = ctrl.Rule(level_diff['low']  & effect['weak'],   probability['low'])    # fraco + fraco → baixo
 
-def calculate_prob(level_input, effect_input):
+def calculate_prob(level_input, effect_input) -> float:
     
-    rule1 = ctrl.Rule(level['high'] & effect['strong'], probability['high'])
-    rule2 = ctrl.Rule(level['high'] & effect['weak'], probability['high'])
-    rule3 = ctrl.Rule(level['low'] & effect['strong'], probability['medium'])
-    rule4 = ctrl.Rule(level['low'] & effect['weak'], probability['low'])
-
+    level_input  = int(max(-6, min(8, round(level_input))))
+    effect_input = float(max(0.0, min(4.0, float(effect_input))))
+    
     # PASSO 1) proposições atómicas (robusto)
-    level_pos = _closest_index(level.universe, level_input)
-    effect_pos = _closest_index(effect.universe, effect_input)
+    l_pos = np.where(level_diff.universe == level_input)[0][0]
+    e_pos = np.where(effect.universe == effect_input)[0][0]
 
-    l_high = level['high'].mf[level_pos]
-    l_low = level['low'].mf[level_pos]
-    e_strong = effect['strong'].mf[effect_pos]
-    e_weak = effect['weak'].mf[effect_pos]
+    l_high = level_diff['high'].mf[l_pos]
+    l_low = level_diff['low'].mf[l_pos]
+    e_strong = effect['strong'].mf[e_pos]
+    e_normal = effect['normal'].mf[e_pos]
+    e_weak = effect['weak'].mf[e_pos]
 
     # PASSO 2) condições lógicas (AND = min)
-    rule1_fire = min(l_high, e_strong)   # high & strong
-    rule2_fire = min(l_high, e_weak)     # high & weak
-    rule3_fire = min(l_low, e_strong)    # low  & strong
-    rule4_fire = min(l_low, e_weak)      # low  & weak
+    r1 = min(l_high, e_strong)  # high & strong
+    r2 = min(l_high, e_normal)  # high & normal
+    r3 = min(l_high, e_weak)    # high & weak
+    r4 = min(l_low, e_strong)   # low  & strong
+    r5 = min(l_low, e_normal)   # low  & normal
+    r6 = min(l_low, e_weak)     # low  & weak
 
     # PASSO 3) implicação (min) — rules 1 & 2 share 'high', combine with max
     high_activation = np.maximum(
-        np.minimum(rule1_fire, probability['high'].mf),
-        np.minimum(rule2_fire, probability['high'].mf),
+        np.minimum(r1, probability["high"].mf),
+        np.minimum(r2, probability["high"].mf),
     )
-    medium_activation = np.minimum(rule3_fire, probability['medium'].mf)
-    low_activation    = np.minimum(rule4_fire, probability['low'].mf)
+    medium_activation = np.maximum(
+        np.minimum(r3, probability["medium"].mf),
+        np.minimum(r4, probability["medium"].mf),
+    )
+    low_activation = np.maximum(
+        np.minimum(r5, probability["low"].mf),
+        np.minimum(r6, probability["low"].mf),
+    )
 
     # PASSO 4) agregação (max)
     aggregated = np.maximum(high_activation, medium_activation)
@@ -125,4 +166,4 @@ def calculate_prob(level_input, effect_input):
         return 0.0
 
     prob_output = fuzz.defuzz(probability.universe, aggregated, "centroid")
-    return float(np.clip(prob_output, 0.0, 1.0))
+    return float(prob_output) if prob_output is not None else 0.0

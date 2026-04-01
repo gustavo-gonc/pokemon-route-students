@@ -21,20 +21,23 @@ get_cell(X, Y, Id, Level) :-
 in_bounds(X, Y) :-
     X >= 0, X < 5, Y >= 0, Y < 5.
 
-% obtem as imformlções sobre o vizinho
+% obtem as informações sobre o vizinho
 neighbor_info(NX, NY, [Id, Name, Level, NX, NY, Types]) :-
     in_bounds(NX, NY),
     get_cell(NX, NY, Id, Level),
     Id \= 0,
     pokemon(Id, Name, Types).
+    
+% as quatro direções possíveis (esquerda, direita, baixo, cima)
+direction(X, Y, NX, NY) :- NX is X - 1, NY is Y.
+direction(X, Y, NX, NY) :- NX is X + 1, NY is Y.
+direction(X, Y, NX, NY) :- NX is X,     NY is Y - 1.
+direction(X, Y, NX, NY) :- NX is X,     NY is Y + 1.
 
 % obtem os elementos adjacentes
 next_rooms(X, Y, Rooms) :-
     findall(Info,
-        (   (NX is X - 1, NY is Y ;
-             NX is X + 1, NY is Y ;
-             NX is X, NY is Y - 1 ;
-             NX is X, NY is Y + 1),
+        (   direction(X, Y, NX, NY),
             neighbor_info(NX, NY, Info)
         ),
         Rooms).
