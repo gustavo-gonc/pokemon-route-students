@@ -1,0 +1,5 @@
+scipy
+scikit-fuzzy
+pyswip
+networkx
+pillow
